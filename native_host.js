@@ -45,22 +45,149 @@ function sendMessage(msgObj) {
 }
 
 // Save a companion metadata JSON file next to the downloaded media
-function saveMetadata(baseFilename, metadata, extraFields) {
+
+// Save a beautiful human-readable HTML file next to the downloaded media
+function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
   try {
     if (!metadata) return;
-    const jsonPath = path.join(DOWNLOAD_DIR, `${baseFilename}.json`);
-    const data = Object.assign({
-      downloaded_at: new Date().toISOString(),
-      url: metadata.url || '',
-      author: metadata.displayName || metadata.handle || '',
-      handle: metadata.handle || '',
-      text: metadata.text || '',
-      timestamp: metadata.timestamp || ''
-    }, extraFields || {});
-    fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf8');
-    log(`Saved metadata to ${jsonPath}`);
+    const htmlPath = path.join(DOWNLOAD_DIR, `${baseFilename}.html`);
+    
+    const mediaHtml = (downloadedFiles || []).map(file => {
+      if (file.match(/\.(mp4|webm|mov)/i)) {
+        return `<div class="media-item video-item"><video controls src="${file}"></video></div>`;
+      } else if (file.match(/\.(jpg|jpeg|png|webp|gif)/i)) {
+        return `<div class="media-item image-item"><img src="${file}" alt="Post Image" onclick="window.open(this.src)"></div>`;
+      }
+      return '';
+    }).join('');
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post by @${metadata.handle || 'unknown'}</title>
+    <style>
+        :root {
+            --bg-color: #0f1419;
+            --card-bg: #15202b;
+            --text-main: #ffffff;
+            --text-secondary: #8899a6;
+            --accent-color: #1d9bf0;
+            --border-color: #38444d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 20px;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: auto 0; /* Vertical centering helper */
+        }
+        .header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .author-name { font-weight: bold; font-size: 1.2rem; }
+        .author-handle { color: var(--text-secondary); font-size: 0.95rem; }
+        .post-date { color: var(--text-secondary); font-size: 0.85rem; margin-top: 2px; }
+        .meta-link {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-top: 8px;
+        }
+        .meta-link:hover { text-decoration: underline; }
+        .content { padding: 16px; font-size: 1.1rem; white-space: pre-wrap; word-break: break-word; }
+        .interactions {
+            padding: 12px 16px;
+            display: flex;
+            gap: 20px;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            margin: 0 16px 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .stat b { color: var(--text-main); }
+        .media-grid {
+            padding: 0 16px 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .media-item {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-item img, .media-item video {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: contain;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .media-item img:hover { transform: scale(1.02); }
+        .footer {
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.1);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="author-name">${metadata.displayName || metadata.handle || 'Unknown User'}</span>
+            <span class="author-handle">@${metadata.handle || 'unknown'}</span>
+            <span class="post-date">${metadata.timestamp ? new Date(metadata.timestamp).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' }) : 'Unknown Date'}</span>
+            <a href="${metadata.url}" class="meta-link" target="_blank">View on X</a>
+        </div>
+        <div class="content">${metadata.text || 'No text content.'}</div>
+        
+        <div class="media-grid">
+            ${mediaHtml}
+        </div>
+
+        ${metadata.interactions ? `
+        <div class="interactions">
+            <span class="stat"><b>${metadata.interactions.replies || 0}</b> Replies</span>
+            <span class="stat"><b>${metadata.interactions.retweets || 0}</b> Retweets</span>
+            <span class="stat"><b>${metadata.interactions.likes || 0}</b> Likes</span>
+        </div>
+        ` : ''}
+    </div>
+</body>
+</html>`;
+
+    fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+    log(`Saved beautiful post to ${htmlPath}`);
   } catch (e) {
-    log(`Failed to save metadata: ${e.message}`);
+    log(`Failed to save beautiful HTML: ${e.message}`);
   }
 }
 
@@ -95,6 +222,14 @@ function handleMessage(msg) {
         { encoding: 'utf8', stdio: 'pipe', timeout: 120000 }
       );
       log(`yt-dlp finished successfully.`);
+      
+      // Track files created by yt-dlp
+      const files = fs.readdirSync(DOWNLOAD_DIR);
+      files.forEach(f => {
+        if (f.startsWith(baseFilename) && !downloadedFiles.includes(f) && !f.endsWith('.json') && !f.endsWith('.html')) {
+          downloadedFiles.push(f);
+        }
+      });
     } catch (error) {
       const errMsg = ((error.stderr || '') + (error.message || '')).split('\n')[0];
       if (hasImages) {
@@ -138,8 +273,8 @@ function handleMessage(msg) {
     });
 
     Promise.all(imagePromises).then(() => {
-      // Save companion metadata
-      saveMetadata(baseFilename, msg.metadata, { media_url: msg.url, type: 'mixed', images_downloaded: downloadedFiles.length });
+      // Save beautiful HTML
+      saveBeautifulHTML(baseFilename, msg.metadata, downloadedFiles);
 
       if (ytdlpError && downloadedFiles.length === 0) {
         sendMessage({ status: 'error', message: `Download failed: ${ytdlpError}` });
@@ -198,13 +333,8 @@ function handleMessage(msg) {
     });
 
     Promise.all(promises).then(() => {
-      // Save companion metadata once all images are downloaded
-      saveMetadata(baseFilename, msg.metadata || { url: msg.originUrl }, {
-        type: 'images',
-        image_urls: msg.urls,
-        images_downloaded: downloadedCount,
-        total_images: msg.urls.length
-      });
+      // Save beautiful HTML once all images are downloaded
+      saveBeautifulHTML(baseFilename, msg.metadata || { url: msg.originUrl, handle: (msg.originUrl || '').match(/x\.com\/([^\/]+)/)?.[1] || 'unknown' }, Array.from({length: downloadedCount}, (_, i) => `${baseFilename}_img${i + 1}.${new URL(msg.urls[i]).searchParams.get('format') || 'jpg'}`));
 
       if (downloadedCount === msg.urls.length) {
         log(`Successfully downloaded ${downloadedCount} images.`);

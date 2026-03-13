@@ -147,24 +147,31 @@ def process_post_download(msg, output_dir):
     )
     results["media_files"] = files
     
-    # 3. Save JSON metadata
-    json_path = os.path.join(output_dir, f"{base_filename}.json")
-    metadata = {
-        "url": msg.get("url"),
-        "handle": handle,
-        "id": tweet_id,
-        "text": msg.get("text", ""),
-        "media_type": media_type,
-        "media_urls": media_urls,
-        "local_files": results
-    }
+    # JSON creation removed per user request
+
+    # 4. Save human-readable Markdown
+    md_path = os.path.join(output_dir, f"{base_filename}.md")
     try:
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(metadata, f, indent=4)
-        results["metadata"] = f"{base_filename}.json"
-        log(f"Saved metadata to {json_path}")
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(f"# Post by @{handle}\n\n")
+            f.write(f"**URL:** {msg.get('url')}\n\n")
+            f.write(f"## Text\n\n")
+            f.write(f"{msg.get('text', 'No text content.')}\n\n")
+            
+            if results.get("media_files"):
+                f.write(f"## Downloaded Media\n\n")
+                for media_file in results["media_files"]:
+                    f.write(f"- {media_file}\n")
+                f.write("\n")
+                
+            if "screenshot" in results:
+                f.write(f"## Screenshot\n\n")
+                f.write(f"![Screenshot]({results['screenshot']})\n")
+                
+        results["markdown"] = f"{base_filename}.md"
+        log(f"Saved readable post to {md_path}")
     except Exception as e:
-        log(f"Failed to save metadata: {e}")
+        log(f"Failed to save markdown: {e}")
         
     return True, results
 

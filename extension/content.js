@@ -25,13 +25,31 @@ function getTweetMetadata(tweetElement) {
   const displayName = displayNameEl ? displayNameEl.innerText.trim() : "";
 
   // Tweet URL and timestamp
-  const timeLink = tweetElement.querySelector('time')?.parentElement;
+  const timeEl = tweetElement.querySelector('time');
+  const timestamp = timeEl ? timeEl.getAttribute('datetime') : "";
+  const timeLink = timeEl?.parentElement;
+  
   // Strip any trailing path after /status/<id> (e.g. /history, /photo/1)
   const rawUrl = timeLink?.href?.split('?')[0] || window.location.href.split('?')[0];
   const url = rawUrl.replace(/(\/status\/\d+).*$/, '$1');
-  const timestamp = tweetElement.querySelector('time')?.getAttribute('datetime') || "";
 
-  return { text, handle, displayName, url, timestamp };
+  // Interaction counts (Likes, Retweets, Replies, Bookmarks)
+  const getCount = (testId) => {
+    const el = tweetElement.querySelector(`[data-testid="${testId}"]`);
+    if (!el) return "0";
+    const label = el.getAttribute('aria-label') || "";
+    const match = label.match(/\d+/);
+    return match ? match[0] : "0";
+  };
+
+  const interactions = {
+    replies: getCount('reply'),
+    retweets: getCount('retweet'),
+    likes: getCount('like'),
+    bookmarks: getCount('bookmark')
+  };
+
+  return { text, handle, displayName, url, timestamp, interactions };
 }
 
 // Extract high resolution image URLs
