@@ -1,0 +1,41 @@
+.twitter-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  margin-left: 8px;
+  height: 34.25px;
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: rgb(113, 118, 123);
+  transition: background-color 0.2s, color 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.twitter-download-btn:hover {
+  background-color: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+}
+
+.twitter-download-btn svg {
+  width: 18.75px;
+  height: 18.75px;
+  fill: currentColor;
+}
+
+.twitter-download-btn.downloading {
+  color: #ff9800;
+  pointer-events: none;
+}
+
+.twitter-download-btn.success {
+  color: #00ba7c;
+}
+
+.twitter-download-btn.error {
+  color: #f4212e;
+}

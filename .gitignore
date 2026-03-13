@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.mp4
+*.log
+*.DS_Store
+extension/.DS_Store
+com.joaosemedo.twitter_downloader.json
+test_payload.json
+test_payload_node.json
+2031542346140233732.mp4
+2031645860514439168.mp4
+native_stderr.log
+wrapper_debug.log
