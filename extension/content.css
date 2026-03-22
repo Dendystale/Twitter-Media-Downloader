@@ -54,6 +54,10 @@
   z-index: 10;
 }
 
+.twitter-translate-btn.active {
+  color: #1d9bf0;
+}
+
 .twitter-translate-btn:hover {
   background-color: rgba(29, 155, 240, 0.1);
   color: rgb(29, 155, 240);
@@ -72,14 +76,4 @@
 
 @keyframes spin {
   100% { transform: rotate(360deg); }
-}
-
-.tweet-translation-container {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(113, 118, 123, 0.3);
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 20px;
-  color: inherit;
 }

@@ -1,3 +1,20 @@
+// Extract text from element, preserving emojis (which X renders as <img> tags)
+function extractTextWithEmojis(element) {
+  let text = '';
+  for (const node of element.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.tagName === 'IMG' && node.alt) {
+        text += node.alt;
+      } else {
+        text += extractTextWithEmojis(node);
+      }
+    }
+  }
+  return text;
+}
+
 // Function to create our download button
 function createDownloadButton() {
   const btn = document.createElement("button");
@@ -16,7 +33,7 @@ function getTweetMetadata(tweetElement) {
   // Tweet text - search for all parts (X splits long posts)
   const textElements = tweetElement.querySelectorAll('[data-testid="tweetText"]');
   const text = textElements.length > 0 
-    ? Array.from(textElements).map(el => el.innerText).join('\n\n').trim() 
+    ? Array.from(textElements).map(el => extractTextWithEmojis(el)).join('\n\n').trim() 
     : "";
 
   // Author handle and display name
@@ -102,7 +119,7 @@ function injectButtons() {
       const images = getImages(tweet);
       const metadata = getTweetMetadata(tweet);
       
-      const transContainer = tweet.querySelector('.tweet-translation-container[data-translated="true"]');
+      const transContainer = tweet.querySelector('.tweet-translation-node[data-translated="true"]');
       
       if (transContainer) {
         metadata.translation = transContainer.innerHTML.replace(/<br\s*\/?>/ig, '\n');
@@ -112,7 +129,7 @@ function injectButtons() {
         if (textElements.length > 0) {
            const lang = textElements[0].getAttribute('lang');
            if (lang && !['en', 'es', 'pt', 'und', 'qme', 'zxx'].includes(lang)) {
-             const text = Array.from(textElements).map(el => el.innerText).join('\n\n').trim();
+             const text = Array.from(textElements).map(el => extractTextWithEmojis(el)).join('\n\n').trim();
              if (text) {
                try {
                  const response = await new Promise(resolve => {
@@ -185,38 +202,113 @@ function injectButtons() {
 }
 
 function injectTranslateButtons() {
-  const textContainers = document.querySelectorAll('[data-testid="tweetText"]:not(.translate-injected)');
+  const allTextContainers = document.querySelectorAll('[data-testid="tweetText"]');
   
-  textContainers.forEach(textEl => {
+  allTextContainers.forEach(textEl => {
+    const originalText = extractTextWithEmojis(textEl).trim();
+    if (!originalText) return;
+
     const lang = textEl.getAttribute('lang');
     if (!lang || ['en', 'es', 'pt', 'und', 'qme', 'zxx'].includes(lang)) {
-      textEl.classList.add('translate-injected');
       return;
+    }
+
+    const injectedLen = textEl.getAttribute('data-translated-len');
+    if (injectedLen === originalText.length.toString()) {
+      return; // Already translated this exact text
     }
 
     const tweet = textEl.closest('article');
     if (!tweet) return;
 
     textEl.classList.add('translate-injected');
+    textEl.setAttribute('data-translated-len', originalText.length.toString());
 
-    const originalText = textEl.innerText.trim();
-    if (!originalText) return;
+    // 1. Setup Toggle Button
+    let btn = tweet.querySelector('.twitter-translate-btn');
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.className = "twitter-translate-btn translating";
+      btn.title = "Toggle Translation";
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <g><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path></g>
+        </svg>
+      `;
 
-    const transContainer = document.createElement('div');
-    transContainer.className = 'tweet-translation-container';
-    transContainer.dir = "ltr";
-    transContainer.innerHTML = '<span style="color: #1d9bf0; font-style: italic; font-size: 13px;">Translating...</span>';
-    textEl.parentElement.appendChild(transContainer);
+      const caret = tweet.querySelector('[data-testid="caret"]');
+      if (caret && caret.parentElement) {
+        if (window.getComputedStyle(caret.parentElement).display !== 'flex') {
+          caret.parentElement.style.display = 'flex';
+        }
+        caret.parentElement.style.alignItems = 'center';
+        caret.parentElement.appendChild(btn);
+      } else {
+        btn.style.position = 'absolute';
+        btn.style.top = '12px';
+        btn.style.right = '48px';
+        tweet.style.position = tweet.style.position || 'relative';
+        tweet.appendChild(btn);
+      }
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (btn.classList.contains('translating')) return;
+
+        const transNode = tweet.querySelector('.tweet-translation-node');
+        if (!transNode) return;
+
+        if (btn.classList.contains('active')) {
+          transNode.style.display = 'none';
+          textEl.style.display = '';
+          btn.classList.remove('active');
+        } else {
+          textEl.style.display = 'none';
+          transNode.style.display = '';
+          btn.classList.add('active');
+        }
+      });
+    } else {
+      btn.classList.add('translating');
+    }
+
+    // 2. Setup Translation Node
+    let transNode = tweet.querySelector('.tweet-translation-node');
+    if (!transNode) {
+      transNode = document.createElement('div');
+      transNode.className = 'tweet-translation-node';
+      transNode.dir = "ltr";
+      
+      const computed = window.getComputedStyle(textEl);
+      transNode.style.fontSize = computed.fontSize;
+      transNode.style.lineHeight = computed.lineHeight;
+      transNode.style.color = computed.color;
+      transNode.style.fontFamily = computed.fontFamily;
+      transNode.style.whiteSpace = 'pre-wrap';
+      transNode.style.wordBreak = 'break-word';
+      transNode.style.display = 'none'; // hide until loading finishes
+      
+      textEl.parentElement.insertBefore(transNode, textEl.nextSibling);
+    }
+    
+    transNode.removeAttribute('data-translated');
 
     chrome.runtime.sendMessage({ action: "translate", text: originalText }, (response) => {
+      btn.classList.remove('translating');
+      
       if (chrome.runtime.lastError || !response || response.status === "error") {
         console.error("Translation failed");
-        transContainer.remove();
         return;
       }
       
-      transContainer.setAttribute('data-translated', 'true');
-      transContainer.innerHTML = response.text.replace(/\n/g, '<br>');
+      transNode.setAttribute('data-translated', 'true');
+      transNode.innerHTML = response.text.replace(/\n/g, '<br>');
+      
+      textEl.style.display = 'none';
+      transNode.style.display = '';
+      btn.classList.add('active');
     });
   });
 }
