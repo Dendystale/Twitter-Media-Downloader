@@ -13,9 +13,11 @@ function createDownloadButton() {
 
 // Extract tweet metadata from the article element
 function getTweetMetadata(tweetElement) {
-  // Tweet text
-  const textEl = tweetElement.querySelector('[data-testid="tweetText"]');
-  const text = textEl ? textEl.innerText.trim() : "";
+  // Tweet text - search for all parts (X splits long posts)
+  const textElements = tweetElement.querySelectorAll('[data-testid="tweetText"]');
+  const text = textElements.length > 0 
+    ? Array.from(textElements).map(el => el.innerText).join('\n\n').trim() 
+    : "";
 
   // Author handle and display name
   const handleEl = tweetElement.querySelector('[data-testid="User-Name"] a[href^="/"]');
