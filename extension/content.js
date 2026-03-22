@@ -91,22 +91,61 @@ function injectButtons() {
     const tweet = actionBar.closest('article');
     if (!tweet) return;
 
-    const hasMedia = tweet.querySelector('video, img[src*="format="]');
-    if (!hasMedia) return;
+    const hasMedia = tweet.querySelector('video, img[src*="format="]') !== null;
 
     const btn = createDownloadButton();
     
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       
       const images = getImages(tweet);
       const metadata = getTweetMetadata(tweet);
       
+      const transContainer = tweet.querySelector('.tweet-translation-container[data-translated="true"]');
+      
+      if (transContainer) {
+        metadata.translation = transContainer.innerHTML.replace(/<br\s*\/?>/ig, '\n');
+      } else {
+        // Auto-translate if text is eligible but hasn't finished translated yet
+        const textElements = tweet.querySelectorAll('[data-testid="tweetText"]');
+        if (textElements.length > 0) {
+           const lang = textElements[0].getAttribute('lang');
+           if (lang && !['en', 'es', 'pt', 'und', 'qme', 'zxx'].includes(lang)) {
+             const text = Array.from(textElements).map(el => el.innerText).join('\n\n').trim();
+             if (text) {
+               try {
+                 const response = await new Promise(resolve => {
+                   chrome.runtime.sendMessage({ action: "translate", text: text }, resolve);
+                 });
+                 if (response && response.status === "success") {
+                   metadata.translation = response.text;
+                 }
+               } catch (err) {
+                 console.error(err);
+               }
+             }
+           }
+        }
+      }
+
       // Always use the canonical tweet URL so yt-dlp can discover ALL videos.
       // Also pass image URLs so the backend can download them alongside.
       const tweetUrl = metadata.url || window.location.href.split('?')[0];
-      const payload = { action: "download", url: tweetUrl, imageUrls: images, metadata };
+      
+      const tweetIdMatch = tweetUrl.match(/\/status\/(\d+)/);
+      const tweetId = tweetIdMatch ? tweetIdMatch[1] : "unknown";
+
+      const payload = { 
+        action: hasMedia ? "download" : "download_post", 
+        url: tweetUrl, 
+        imageUrls: images, 
+        metadata: metadata,
+        tweet_info: {
+          handle: metadata.handle || "unknown",
+          id: tweetId
+        }
+      };
 
       console.log("Download Payload:", payload);
       
@@ -145,4 +184,46 @@ function injectButtons() {
   });
 }
 
-setInterval(injectButtons, 2000);
+function injectTranslateButtons() {
+  const textContainers = document.querySelectorAll('[data-testid="tweetText"]:not(.translate-injected)');
+  
+  textContainers.forEach(textEl => {
+    const lang = textEl.getAttribute('lang');
+    if (!lang || ['en', 'es', 'pt', 'und', 'qme', 'zxx'].includes(lang)) {
+      textEl.classList.add('translate-injected');
+      return;
+    }
+
+    const tweet = textEl.closest('article');
+    if (!tweet) return;
+
+    textEl.classList.add('translate-injected');
+
+    const originalText = textEl.innerText.trim();
+    if (!originalText) return;
+
+    const transContainer = document.createElement('div');
+    transContainer.className = 'tweet-translation-container';
+    transContainer.dir = "ltr";
+    transContainer.innerHTML = '<span style="color: #1d9bf0; font-style: italic; font-size: 13px;">Translating...</span>';
+    textEl.parentElement.appendChild(transContainer);
+
+    chrome.runtime.sendMessage({ action: "translate", text: originalText }, (response) => {
+      if (chrome.runtime.lastError || !response || response.status === "error") {
+        console.error("Translation failed");
+        transContainer.remove();
+        return;
+      }
+      
+      transContainer.setAttribute('data-translated', 'true');
+      transContainer.innerHTML = response.text.replace(/\n/g, '<br>');
+    });
+  });
+}
+
+function runInjectors() {
+  injectButtons();
+  injectTranslateButtons();
+}
+
+setInterval(runInjectors, 2000);

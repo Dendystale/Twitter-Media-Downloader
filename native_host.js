@@ -168,6 +168,7 @@ function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
             <a href="${metadata.url}" class="meta-link" target="_blank">View on X</a>
         </div>
         <div class="content">${metadata.text || 'No text content.'}</div>
+        ${metadata.translation ? `<div class="content translation-content" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px; color: var(--text-secondary); font-style: italic;"><b>Translation:</b><br>${metadata.translation.replace(/\n/g, '<br>')}</div>` : ''}
         
         <div class="media-grid">
             ${mediaHtml}
@@ -287,6 +288,23 @@ function handleMessage(msg) {
     return;
   }
 
+
+  if (msg.action === 'download_post' && msg.url) {
+    if (!fs.existsSync(DOWNLOAD_DIR)) {
+      fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+    }
+
+    const urlMatch = msg.url.match(/(?:x|twitter)\.com\/([^/]+)\/status\/(\d+)/);
+    const baseFilename = urlMatch
+      ? `x.com_${urlMatch[1]}_status_${urlMatch[2]}`
+      : `twitter_${Date.now()}`;
+
+    // Save beautiful HTML for text-only posts
+    saveBeautifulHTML(baseFilename, msg.metadata, []);
+
+    sendMessage({ status: 'success', message: 'Text post downloaded' });
+    return;
+  }
 
   if (msg.action === 'download_images' && Array.isArray(msg.urls)) {
     if (!fs.existsSync(DOWNLOAD_DIR)) {

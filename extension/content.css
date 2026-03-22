@@ -39,3 +39,47 @@
 .twitter-download-btn.error {
   color: #f4212e;
 }
+
+.twitter-translate-btn {
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: rgb(113, 118, 123);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+  z-index: 10;
+}
+
+.twitter-translate-btn:hover {
+  background-color: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+}
+
+.twitter-translate-btn svg {
+  width: 18.75px;
+  height: 18.75px;
+  fill: currentColor;
+}
+
+.twitter-translate-btn.translating {
+  color: #1d9bf0;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.tweet-translation-container {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(113, 118, 123, 0.3);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 20px;
+  color: inherit;
+}

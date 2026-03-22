@@ -156,7 +156,11 @@ def process_post_download(msg, output_dir):
             f.write(f"# Post by @{handle}\n\n")
             f.write(f"**URL:** {msg.get('url')}\n\n")
             f.write(f"## Text\n\n")
-            f.write(f"{msg.get('text', 'No text content.')}\n\n")
+            f.write(f"{msg.get('metadata', {}).get('text') or msg.get('text', 'No text content.')}\n\n")
+            
+            translation = msg.get('metadata', {}).get('translation') or msg.get('translation')
+            if translation:
+                f.write(f"## Translation\n\n{translation}\n\n")
             
             if results.get("media_files"):
                 f.write(f"## Downloaded Media\n\n")
