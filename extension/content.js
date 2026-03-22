@@ -316,6 +316,44 @@ function injectTranslateButtons() {
 function runInjectors() {
   injectButtons();
   injectTranslateButtons();
+  injectSidebarToggle();
+}
+
+function injectSidebarToggle() {
+  const tabList = document.querySelector('[data-testid="primaryColumn"] [role="tablist"]');
+  if (!tabList) return;
+
+  if (tabList.querySelector('.twitter-sidebar-toggle-btn')) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'twitter-sidebar-toggle-btn';
+  btn.title = 'Toggle Right Sidebar';
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <g><path d="M6 14H4v6h6v-2H6v-4zM20 4h-6v2h4v4h2V4zM4 10h2V6h4V4H4v6zm16 4h-2v4h-4v2h6v-6z"></path></g>
+    </svg>
+  `;
+
+  chrome.storage.local.get(['hideSidebar'], (result) => {
+    if (result.hideSidebar) {
+      document.body.classList.add('hide-x-sidebar');
+      btn.classList.add('active');
+    } else {
+      document.body.classList.remove('hide-x-sidebar');
+      btn.classList.remove('active');
+    }
+  });
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isHidden = document.body.classList.toggle('hide-x-sidebar');
+    btn.classList.toggle('active', isHidden);
+    chrome.storage.local.set({ hideSidebar: isHidden });
+  });
+
+  tabList.appendChild(btn);
 }
 
 setInterval(runInjectors, 2000);

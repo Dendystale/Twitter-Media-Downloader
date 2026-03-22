@@ -77,3 +77,92 @@
 @keyframes spin {
   100% { transform: rotate(360deg); }
 }
+
+.twitter-sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgb(113, 118, 123);
+  padding: 0 16px;
+  transition: background-color 0.2s, color 0.2s;
+  align-self: stretch;
+}
+
+.twitter-sidebar-toggle-btn:hover {
+  background-color: rgba(15, 20, 25, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .twitter-sidebar-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.twitter-sidebar-toggle-btn.active {
+  color: rgb(29, 155, 240);
+}
+
+.twitter-sidebar-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+body.hide-x-sidebar [data-testid="sidebarColumn"],
+body.hide-x-sidebar header[role="banner"] {
+  display: none !important;
+}
+
+body.hide-x-sidebar [data-testid="primaryColumn"] {
+  max-width: 950px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  border-left: 1px solid rgb(47, 51, 54) !important;
+  border-right: 1px solid rgb(47, 51, 54) !important;
+}
+
+/* On light mode borders are different, let's use transparent borders or just no borders to be safe */
+body.hide-x-sidebar [data-testid="primaryColumn"] {
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* Override the 600px max-width on X's internal wrappers */
+body.hide-x-sidebar [data-testid="primaryColumn"] > div,
+body.hide-x-sidebar [data-testid="primaryColumn"] > div > div,
+body.hide-x-sidebar [data-testid="primaryColumn"] > div > div > div,
+body.hide-x-sidebar [data-testid="primaryColumn"] > div > div > div > div,
+body.hide-x-sidebar [data-testid="primaryColumn"] > div > div > div > div > div {
+  max-width: 100% !important;
+}
+
+/* Force the main container to take full width and center its contents */
+body.hide-x-sidebar main[role="main"] {
+  width: 100vw !important;
+  max-width: 100% !important;
+}
+
+body.hide-x-sidebar main[role="main"] > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+/* Ensure the wrapper holding primaryColumn is also flexing to center */
+body.hide-x-sidebar main[role="main"] > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+/* Increase font size of tweets by approximately "2 ticks" (e.g. from 15px default to ~19px) */
+body.hide-x-sidebar [data-testid="primaryColumn"] [data-testid="tweetText"],
+body.hide-x-sidebar [data-testid="primaryColumn"] .tweet-translation-node {
+  font-size: 19px !important;
+  line-height: 1.4 !important;
+}
