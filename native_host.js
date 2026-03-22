@@ -103,6 +103,7 @@ function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
             border-bottom: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         .author-name { font-weight: bold; font-size: 1.2rem; }
         .author-handle { color: var(--text-secondary); font-size: 0.95rem; }
@@ -166,9 +167,38 @@ function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
             <span class="author-handle">@${metadata.handle || 'unknown'}</span>
             <span class="post-date">${metadata.timestamp ? new Date(metadata.timestamp).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' }) : 'Unknown Date'}</span>
             <a href="${metadata.url}" class="meta-link" target="_blank">View on X</a>
+            ${metadata.translation ? `
+            <button id="toggle-translation-btn" style="position: absolute; top: 16px; right: 16px; background: rgba(29, 155, 240, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); border-radius: 9999px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: background 0.2s ease;">
+                Show Original
+            </button>
+            ` : ''}
         </div>
+        ${metadata.translation ? `
+        <div id="translated-text" class="content">${metadata.translation}</div>
+        <div id="original-text" class="content" style="display: none;">${metadata.text || 'No text content.'}</div>
+        <script>
+            const btn = document.getElementById('toggle-translation-btn');
+            const transText = document.getElementById('translated-text');
+            const origText = document.getElementById('original-text');
+            let showingTranslation = true;
+            btn.addEventListener('click', () => {
+                showingTranslation = !showingTranslation;
+                if (showingTranslation) {
+                    transText.style.display = 'block';
+                    origText.style.display = 'none';
+                    btn.innerText = 'Show Original';
+                } else {
+                    transText.style.display = 'none';
+                    origText.style.display = 'block';
+                    btn.innerText = 'Show Translation';
+                }
+            });
+            btn.addEventListener('mouseover', () => btn.style.background = 'rgba(29, 155, 240, 0.2)');
+            btn.addEventListener('mouseout', () => btn.style.background = 'rgba(29, 155, 240, 0.1)');
+        </script>
+        ` : `
         <div class="content">${metadata.text || 'No text content.'}</div>
-        ${metadata.translation ? `<div class="content translation-content" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px; color: var(--text-secondary); font-style: italic;"><b>Translation:</b><br>${metadata.translation.replace(/\n/g, '<br>')}</div>` : ''}
+        `}
         
         <div class="media-grid">
             ${mediaHtml}
