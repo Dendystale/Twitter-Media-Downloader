@@ -345,9 +345,55 @@ function injectSidebarToggle() {
     e.preventDefault();
     e.stopPropagation();
     
+    // Find the currently most visible post
+    const articles = Array.from(document.querySelectorAll('article[data-testid="tweet"]'));
+    let targetArticle = null;
+    let targetOffset = 0;
+
+    for (const article of articles) {
+      const rect = article.getBoundingClientRect();
+      // Heuristic: top is in the top half of the screen, or it spans across the top quarter
+      if (rect.top >= 0 && rect.top <= window.innerHeight / 2) {
+        targetArticle = article;
+        targetOffset = rect.top;
+        break;
+      } else if (rect.top < 0 && rect.bottom > window.innerHeight / 4) {
+        targetArticle = article;
+        targetOffset = rect.top;
+        break;
+      }
+    }
+
     const isHidden = document.body.classList.toggle('hide-x-sidebar');
     btn.classList.toggle('active', isHidden);
     chrome.storage.local.set({ hideSidebar: isHidden });
+
+    // Restore scroll position gracefully
+    if (targetArticle) {
+      const startTime = Date.now();
+      
+      const enforceScroll = () => {
+        // Stop if the article was unmounted entirely
+        if (!document.contains(targetArticle)) return;
+        
+        const newRect = targetArticle.getBoundingClientRect();
+        const diff = newRect.top - targetOffset;
+        
+        // Correct scroll by the difference if layout shifted it
+        if (Math.abs(diff) > 1) {
+          window.scrollBy(0, diff);
+        }
+        
+        // Keep enforcing for a short time to allow React layout and virtualization to settle
+        if (Date.now() - startTime < 800) {
+          requestAnimationFrame(enforceScroll);
+        }
+      };
+      
+      requestAnimationFrame(enforceScroll);
+      // Trigger resize to help virtualized lists recalculate heights faster
+      window.dispatchEvent(new Event('resize'));
+    }
   });
 
   document.body.appendChild(btn);
