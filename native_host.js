@@ -127,6 +127,26 @@ function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
             font-size: 0.9rem;
         }
         .stat b { color: var(--text-main); }
+        .quoted-tweet {
+            margin: 0 16px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.02);
+        }
+        .quoted-tweet-header {
+            padding: 12px 16px 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .quoted-tweet-content {
+            padding: 4px 16px 16px;
+            font-size: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .media-grid {
             padding: 0 16px 16px;
             display: grid;
@@ -200,6 +220,17 @@ function saveBeautifulHTML(baseFilename, metadata, downloadedFiles) {
         <div class="content">${metadata.text || 'No text content.'}</div>
         `}
         
+        ${metadata.quoted_tweet ? `
+        <div class="quoted-tweet">
+            <div class="quoted-tweet-header">
+                <span class="author-name" style="font-size: 0.95rem;">${metadata.quoted_tweet.displayName}</span>
+                <span class="author-handle" style="font-size: 0.9rem;">@${metadata.quoted_tweet.handle}</span>
+                <span class="post-date" style="font-size: 0.85rem;">· ${metadata.quoted_tweet.timestamp ? new Date(metadata.quoted_tweet.timestamp).toLocaleString(undefined, { dateStyle: 'medium' }) : ''}</span>
+            </div>
+            <div class="quoted-tweet-content">${metadata.quoted_tweet.text || ''}</div>
+        </div>
+        ` : ''}
+
         <div class="media-grid">
             ${mediaHtml}
         </div>

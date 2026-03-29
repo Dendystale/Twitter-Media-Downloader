@@ -30,18 +30,52 @@ function createDownloadButton() {
 
 // Extract tweet metadata from the article element
 function getTweetMetadata(tweetElement) {
-  // Tweet text - search for all parts (X splits long posts)
-  const textElements = tweetElement.querySelectorAll('[data-testid="tweetText"]');
-  const text = textElements.length > 0 
-    ? Array.from(textElements).map(el => extractTextWithEmojis(el)).join('\n\n').trim() 
-    : "";
+  const userNames = tweetElement.querySelectorAll('[data-testid="User-Name"]');
+  const mainUserName = userNames.length > 0 ? userNames[0] : null;
+  const quotedUserName = userNames.length > 1 ? userNames[1] : null;
 
-  // Author handle and display name
-  const handleEl = tweetElement.querySelector('[data-testid="User-Name"] a[href^="/"]');
-  const handle = handleEl ? handleEl.href.replace(/.*\//, '') : "";
+  let handle = "";
+  let displayName = "";
+  if (mainUserName) {
+    const handleEl = mainUserName.querySelector('a[href^="/"]');
+    handle = handleEl ? handleEl.href.replace(/.*\//, '') : "";
+    const displayNameEl = mainUserName.querySelector('span > span');
+    displayName = displayNameEl ? displayNameEl.innerText.trim() : "";
+  }
+
+  const texts = Array.from(tweetElement.querySelectorAll('[data-testid="tweetText"]'));
+  const mainTextParts = [];
+  const quotedTextParts = [];
   
-  const displayNameEl = tweetElement.querySelector('[data-testid="User-Name"] span > span');
-  const displayName = displayNameEl ? displayNameEl.innerText.trim() : "";
+  texts.forEach(t => {
+    if (quotedUserName && (quotedUserName.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+      quotedTextParts.push(extractTextWithEmojis(t));
+    } else {
+      mainTextParts.push(extractTextWithEmojis(t));
+    }
+  });
+
+  const text = mainTextParts.join('\n\n').trim();
+
+  let quoted_tweet = null;
+  if (quotedUserName) {
+    const qHandleEl = quotedUserName.querySelector('a[href^="/"]');
+    const qHandle = qHandleEl ? qHandleEl.href.replace(/.*\//, '') : "";
+    const qDisplayNameEl = quotedUserName.querySelector('span > span');
+    const qDisplayName = qDisplayNameEl ? qDisplayNameEl.innerText.trim() : "";
+    
+    // Find timestamp for quoted tweet
+    const quoteCard = quotedUserName.closest('[role="link"]') || quotedUserName.parentElement;
+    const qTimeEl = quoteCard ? quoteCard.querySelector('time') : null;
+    const qTimestamp = qTimeEl ? qTimeEl.getAttribute('datetime') : "";
+
+    quoted_tweet = {
+      handle: qHandle,
+      displayName: qDisplayName,
+      text: quotedTextParts.join('\n\n').trim(),
+      timestamp: qTimestamp
+    };
+  }
 
   // Tweet URL and timestamp
   const timeEl = tweetElement.querySelector('time');
@@ -68,7 +102,7 @@ function getTweetMetadata(tweetElement) {
     bookmarks: getCount('bookmark')
   };
 
-  return { text, handle, displayName, url, timestamp, interactions };
+  return { text, handle, displayName, url, timestamp, interactions, quoted_tweet };
 }
 
 // Extract high resolution image URLs
@@ -317,6 +351,70 @@ function runInjectors() {
   injectButtons();
   injectTranslateButtons();
   injectSidebarToggle();
+  injectTopRefreshButton();
+}
+
+function injectTopRefreshButton() {
+  // 1. Try to find the tablist more reliably
+  const tablists = document.querySelectorAll('[role="tablist"]');
+  let targetTablist = null;
+  
+  for (const t of tablists) {
+    // Check if it contains "For you" or "Following" or has a home link
+    const text = t.innerText || "";
+    if (text.includes("For you") || text.includes("Following") || t.querySelector('a[href^="/home"]')) {
+      targetTablist = t;
+      break;
+    }
+  }
+  
+  if (!targetTablist) return;
+
+  // 2. Identify a better container if the tablist itself is too restrictive (flex/overflow)
+  // Often the sticky header is the parent of the tablist
+  const headerContainer = targetTablist.parentElement;
+  if (!headerContainer) return;
+
+  if (document.querySelector('.twitter-top-refresh-btn')) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'twitter-top-refresh-btn';
+  btn.title = 'Scroll to top & refresh';
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px;">
+      <g><path d="M13 7.828V20h-2V7.828l-5.364 5.364-1.414-1.414L12 4l7.778 7.778-1.414 1.414L13 7.828z"></path></g>
+    </svg>
+  `;
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setTimeout(() => {
+      // Look for the "Show X posts" pill
+      const pills = Array.from(document.querySelectorAll('[role="button"]'));
+      const refreshPill = pills.find(p => p.innerText && (p.innerText.includes("Show") && p.innerText.includes("posts")));
+      
+      if (refreshPill) {
+        refreshPill.click();
+      } else {
+        // Fallback: click the Home link in the sidebar or the first tab
+        const homeLink = document.querySelector('[data-testid="AppTabBar_Home_Link"]');
+        if (homeLink) {
+          homeLink.click();
+        } else {
+          const firstTab = targetTablist.querySelector('a');
+          if (firstTab) firstTab.click();
+        }
+      }
+    }, 300);
+  });
+
+  // Inject into the header container instead of the tablist to avoid flex item issues
+  headerContainer.style.position = 'relative';
+  headerContainer.appendChild(btn);
 }
 
 function injectSidebarToggle() {

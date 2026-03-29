@@ -161,6 +161,14 @@ def process_post_download(msg, output_dir):
             translation = msg.get('metadata', {}).get('translation') or msg.get('translation')
             if translation:
                 f.write(f"## Translation\n\n{translation}\n\n")
+                
+            quoted_tweet = msg.get('metadata', {}).get('quoted_tweet')
+            if quoted_tweet:
+                f.write(f"## Quoted Tweet\n\n")
+                f.write(f"**Author:** {quoted_tweet.get('displayName')} (@{quoted_tweet.get('handle')})\n")
+                if quoted_tweet.get('timestamp'):
+                    f.write(f"**Date:** {quoted_tweet.get('timestamp')}\n")
+                f.write(f"\n{quoted_tweet.get('text', '')}\n\n")
             
             if results.get("media_files"):
                 f.write(f"## Downloaded Media\n\n")

@@ -193,3 +193,46 @@ body.hide-x-sidebar [data-testid="primaryColumn"] .tweet-translation-node {
   font-size: 19px !important;
   line-height: 1.4 !important;
 }
+
+.twitter-top-refresh-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  color: rgb(239, 243, 244);
+  transition: background-color 0.2s, transform 0.1s;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.twitter-top-refresh-btn:hover {
+  background-color: rgba(29, 155, 240, 0.15);
+  color: rgb(29, 155, 240);
+  border-color: rgb(29, 155, 240);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.twitter-top-refresh-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+@media (prefers-color-scheme: light) {
+  .twitter-top-refresh-btn {
+    background-color: rgba(255, 255, 255, 0.7);
+    color: rgb(15, 20, 25);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+.twitter-top-refresh-btn svg {
+  fill: currentColor;
+}
